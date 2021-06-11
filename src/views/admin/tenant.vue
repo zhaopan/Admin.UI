@@ -6,7 +6,7 @@
         <el-form-item>
           <el-input
             v-model="filter.name"
-            placeholder="租户名"
+            placeholder="企业名称"
             clearable
             @keyup.enter.native="onSearch"
           >
@@ -51,8 +51,9 @@
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" width="80" label="#" />
-      <el-table-column prop="name" label="租户名" width />
-      <el-table-column prop="code" label="编码" width />
+      <el-table-column prop="name" label="企业名称" width />
+      <el-table-column prop="code" label="企业编码" width />
+      <el-table-column prop="dataIsolationTypeName" label="数据隔离" width="120" />
       <el-table-column prop="dbTypeName" label="数据库" width="120" />
       <el-table-column prop="idleTime" label="空闲时间（分）" width="120" />
       <el-table-column prop="createdTime" label="创建时间" :formatter="formatCreatedTime" width />
@@ -66,9 +67,29 @@
           >{{ row.enabled ? '正常' : '禁用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column v-if="checkPermission(['api:admin:tenant:update','api:admin:tenant:softdelete'])" label="操作" width="180">
+      <el-table-column v-if="checkPermission(['api:admin:tenant:update','api:admin:tenant:softdelete','api:admin:permission:assign','api:admin:permission:delete'])" label="操作" width="260">
         <template #default="{ $index, row }">
-          <el-button v-if="checkPermission(['api:admin:tenant:update'])" @click="onEdit($index, row)">编辑</el-button>
+          <el-dropdown
+            v-if="checkPermission(['api:admin:tenant:update','api:admin:permission:assign','api:admin:tenant:delete'])"
+            :split-button="checkPermission(['api:admin:tenant:update'])"
+            type="primary"
+            style="margin-left:10px;"
+            @click="onEdit($index, row)"
+            @command="(command)=>onCommand(command,row)"
+          >
+            <template v-if="checkPermission(['api:admin:tenant:update'])">
+              编辑
+            </template>
+            <el-button v-else type="primary">
+              更多 <i class="el-icon-arrow-down el-icon--right" />
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu :visible-arrow="false" style="margin-top: 2px;width:90px;text-align:right;">
+                <el-dropdown-item v-if="checkPermission(['api:admin:permission:assign'])" command="setPermission">设置权限</el-dropdown-item>
+                <el-dropdown-item v-if="checkPermission(['api:admin:tenant:delete'])" command="delete">彻底删除</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <my-confirm-button
             v-if="checkPermission(['api:admin:tenant:softdelete'])"
             type="delete"
@@ -90,6 +111,9 @@
         @get-page="getTenants"
       />
     </template>
+
+    <!--选择权限-->
+    <my-select-permission :role-id="roleId" :title="title" :visible.sync="selectPermissionVisible" @click="onSelectPermission" />
 
     <!--新增窗口-->
     <el-drawer
@@ -115,13 +139,42 @@
         >
           <el-row>
             <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="租户名" prop="name">
+              <el-form-item label="企业名称" prop="name">
                 <el-input v-model="addForm.name" auto-complete="off" />
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="编码" prop="code">
+              <el-form-item label="企业编码" prop="code">
                 <el-input v-model="addForm.code" auto-complete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+              <el-form-item label="数据隔离类型" prop="dataIsolationType">
+                <el-select v-model="addForm.dataIsolationType" placeholder="数据隔离类型" style="width:100%;">
+                  <el-option
+                    v-for="item in dataIsolationTypeList"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+              <el-form-item label="姓名" prop="realName">
+                <el-input v-model="addForm.realName" auto-complete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+              <el-form-item label="手机号码" prop="phone">
+                <el-input v-model="addForm.phone" auto-complete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+              <el-form-item label="邮箱地址" prop="email">
+                <el-input v-model="addForm.email" auto-complete="off" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -201,13 +254,42 @@
         >
           <el-row>
             <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="租户名" prop="name">
+              <el-form-item label="企业名称" prop="name">
                 <el-input v-model="editForm.name" auto-complete="off" />
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="编码" prop="code">
+              <el-form-item label="企业编码" prop="code">
                 <el-input v-model="editForm.code" auto-complete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+              <el-form-item label="数据隔离类型" prop="dataIsolationType">
+                <el-select v-model="editForm.dataIsolationType" placeholder="数据隔离类型" style="width:100%;">
+                  <el-option
+                    v-for="item in dataIsolationTypeList"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+              <el-form-item label="姓名" prop="realName">
+                <el-input v-model="editForm.realName" auto-complete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+              <el-form-item label="手机号码" prop="phone">
+                <el-input v-model="editForm.phone" auto-complete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+              <el-form-item label="邮箱地址" prop="email">
+                <el-input v-model="editForm.email" auto-complete="off" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -268,14 +350,25 @@
 
 <script>
 import { formatTime } from '@/utils'
-import { getTenantListPage, removeTenant, editTenant, addTenant, batchRemoveTenant, getTenant } from '@/api/admin/tenant'
+import { getTenantListPage, removeTenant, editTenant, addTenant, batchRemoveTenant, getTenant, deleteTenant } from '@/api/admin/tenant'
+import { addRolePermission } from '@/api/admin/permission'
 import MyContainer from '@/components/my-container'
 import MyConfirmButton from '@/components/my-confirm-button'
+import MySelectPermission from '@/components/my-select-window/permission'
 
 export default {
   name: 'Tenants',
-  components: { MyContainer, MyConfirmButton },
+  components: { MyContainer, MyConfirmButton, MySelectPermission },
   data() {
+    const validatePhone = (rule, value, callback) => {
+      const reg = /^(0|86|17951)?(13[0-9]|15[0123456789]|17[678]|18[0-9]|14[57])[0-9]{8}$/
+      if (!reg.test(value)) {
+        callback(new Error('请输入正确的手机号码!'))
+      } else {
+        callback()
+      }
+    }
+
     return {
       filter: {
         name: ''
@@ -286,6 +379,10 @@ export default {
       statusList: [
         { name: '激活', value: true },
         { name: '禁用', value: false }
+      ],
+      dataIsolationTypeList: [
+        { 'label': '独立数据库', 'value': 1 },
+        { 'label': '共享数据库', 'value': 4 }
       ],
       dbTypeList: [
         { 'label': 'MySql', 'value': 0 },
@@ -313,8 +410,17 @@ export default {
       editFormVisible: false, // 编辑界面是否显示
       editLoading: false,
       editFormRules: {
-        name: [{ required: true, message: '请输入租户名', trigger: 'blur' }],
-        code: [{ required: true, message: '请输入编码', trigger: 'blur' }],
+        name: [{ required: true, message: '请输入企业名称', trigger: 'blur' }],
+        code: [{ required: true, message: '请输入企业编码', trigger: 'blur' }],
+        realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+        phone: [
+          { required: true, message: '请输入手机号码', trigger: 'blur' },
+          { validator: validatePhone, trigger: ['blur', 'change'] }
+        ],
+        email: [
+          { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+          { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+        ],
         enabled: [{ required: true, message: '请选择状态', trigger: 'change' }]
       },
       // 编辑界面数据
@@ -322,6 +428,7 @@ export default {
         id: 0,
         name: '',
         code: '',
+        dataIsolationType: 1,
         dbType: 0,
         connectionString: '',
         idleTime: 10,
@@ -333,14 +440,24 @@ export default {
       addFormVisible: false, // 新增界面是否显示
       addLoading: false,
       addFormRules: {
-        name: [{ required: true, message: '请输入租户名', trigger: 'blur' }],
-        code: [{ required: true, message: '请输入编码', trigger: 'blur' }],
+        name: [{ required: true, message: '请输入企业名称', trigger: 'blur' }],
+        code: [{ required: true, message: '请输入企业编码', trigger: 'blur' }],
+        realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+        phone: [
+          { required: true, message: '请输入手机号码', trigger: 'blur' },
+          { validator: validatePhone, trigger: ['blur', 'change'] }
+        ],
+        email: [
+          { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+          { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+        ],
         enabled: [{ required: true, message: '请选择状态', trigger: 'change' }]
       },
       // 新增界面数据
       addForm: {
         name: '',
         code: '',
+        dataIsolationType: 1,
         dbType: 0,
         connectionString: '',
         idleTime: 10,
@@ -348,7 +465,18 @@ export default {
         enabled: true
       },
       addFormRef: null,
-      deleteLoading: false
+      deleteLoading: false,
+
+      selectPermissionVisible: false,
+      currentRow: null
+    }
+  },
+  computed: {
+    roleId() {
+      return this.currentRow?.roleId
+    },
+    title() {
+      return `设置${this.currentRow?.name}（${this.currentRow?.code}）权限`
     }
   },
   mounted() {
@@ -529,6 +657,52 @@ export default {
     },
     selsChange: function(sels) {
       this.sels = sels
+    },
+    // 选择权限
+    async onSelectPermission(permissionIds) {
+      const para = { permissionIds, roleId: this.roleId }
+      this.loadingSave = true
+      const res = await addRolePermission(para)
+      this.loadingSave = false
+
+      if (!res?.success) {
+        return
+      }
+
+      this.selectPermissionVisible = false
+      this.$message({
+        message: this.$t('admin.saveOk'),
+        type: 'success'
+      })
+    },
+    // 彻底删除
+    async deleteAsync() {
+      this.pageLoading = true
+      const para = { id: this.currentRow?.id }
+      const res = await deleteTenant(para)
+      this.pageLoading = false
+      if (!res?.success) {
+        return
+      }
+
+      this.$message({
+        message: this.$t('admin.deleteOk'),
+        type: 'success'
+      })
+
+      this.getTenants()
+    },
+    // 更多操作
+    onCommand(command, row) {
+      const me = this
+      this.currentRow = row
+      if (command === 'setPermission') {
+        this.selectPermissionVisible = true
+      } else if (command === 'delete') {
+        this.$confirm('确定要彻底删除吗?', '提示').then(() => {
+          me.deleteAsync()
+        }).catch(() => {})
+      }
     }
   }
 }

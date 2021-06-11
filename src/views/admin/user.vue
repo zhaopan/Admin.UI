@@ -93,11 +93,13 @@
     <!--新增窗口-->
     <el-drawer
       v-if="checkPermission(['api:admin:user:add'])"
+      ref="addFormWindow"
       title="新增用户"
       :modal="false"
       :wrapper-closable="true"
       :modal-append-to-body="false"
       :visible.sync="addFormVisible"
+      destroy-on-close
       direction="btt"
       size="auto"
       class="el-drawer__wrapper"
@@ -152,7 +154,7 @@
         </el-form>
       </section>
       <div class="drawer-footer">
-        <el-button @click.native="addFormVisible = false">取消</el-button>
+        <el-button @click.native="$refs.addFormWindow.closeDrawer()">取消</el-button>
         <my-confirm-button type="submit" :validate="addFormvalidate" :loading="addLoading" @click="onAddSubmit" />
       </div>
     </el-drawer>
@@ -276,7 +278,8 @@ export default {
         password: '',
         roleIds: []
       },
-      deleteLoading: false
+      deleteLoading: false,
+      selectTenantVisible: false
     }
   },
   async mounted() {
@@ -402,6 +405,7 @@ export default {
     // 新增
     async onAddSubmit() {
       this.addLoading = true
+      debugger
       const para = _.cloneDeep(this.addForm)
 
       const res = await addUser(para)
