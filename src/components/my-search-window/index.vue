@@ -1,15 +1,13 @@
 <template>
-  <el-dialog
+  <my-window
     title="高级查询"
-    :visible.sync="visible"
+    embed
+    :visible.sync="currentVisible"
     :modal="modal"
     :modal-append-to-body="modalAppendToBody"
-    :top="'8vh'"
     :custom-class="'my-search-window'"
     :close-on-click-modal="closeOnClickModal"
     :close-on-press-escape="closeOnPressEscape"
-    :before-close="onCancel"
-    :style="inline?'position:absolute;':''"
   >
     <my-search-filter ref="searchFilter" :fields="fields" />
     <template #footer>
@@ -28,7 +26,7 @@
         <el-button type="primary" @click="onSearch">查询</el-button>
       </div>
     </template>
-  </el-dialog>
+  </my-window>
 </template>
 
 <script>
@@ -63,11 +61,12 @@
       this.searchWindowVisible = false
     },
 */
+import MyWindow from '@/components/my-window'
 import MyConfirmButton from '@/components/my-confirm-button'
 import MySearchFilter from '@/components/my-search-filter'
 export default {
   name: 'MySearchWindow',
-  components: { MyConfirmButton, MySearchFilter },
+  components: { MyWindow, MyConfirmButton, MySearchFilter },
   props: {
     visible: {
       type: Boolean,
@@ -87,7 +86,7 @@ export default {
     },
     closeOnClickModal: {
       type: Boolean,
-      default: true
+      default: false
     },
     closeOnPressEscape: {
       type: Boolean,
@@ -115,12 +114,21 @@ export default {
     }
   },
   computed: {
+    currentVisible: {
+      get() {
+        return this.visible
+      },
+      set(val) {
+        if (!val) {
+          this.onCancel()
+        }
+      }
+
+    }
   },
   watch: {
-
   },
   mounted() {
-
   },
   methods: {
     // 重置
@@ -140,12 +148,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-::v-deep .my-search-window{
-  width:60%;
-  .el-dialog__body{
-    padding:10px;
-  }
-}
-</style>

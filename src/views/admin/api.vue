@@ -63,9 +63,7 @@
       @select="onSelect"
     >
       <el-table-column type="selection" width="50" />
-      <el-table-column type="index" width="50" label="#" />
       <el-table-column prop="label" label="接口名" width="180" />
-      <el-table-column prop="id" label="编号" width="80" />
       <el-table-column prop="path" label="接口地址" width />
       <el-table-column prop="description" label="接口描述" width />
       <!-- <el-table-column prop="createTime" label="创建时间" :formatter="formatCreatedTime" width="120" >
@@ -89,15 +87,14 @@
     </el-table>
 
     <!--新增窗口-->
-    <el-dialog
+    <my-window
       v-if="checkPermission(['api:admin:api:add'])"
       title="新增"
       :visible.sync="addFormVisible"
-      :close-on-click-modal="false"
       @close="onCloseAddForm"
     >
       <el-form ref="addForm" :model="addForm" label-width="80px" :rules="addFormRules">
-        <el-form-item prop="parentIds" label="所属模块">
+        <el-form-item prop="parentIds" label="上级接口">
           <el-cascader
             :key="addFormKey"
             v-model="addForm.parentIds"
@@ -136,18 +133,17 @@
           <my-confirm-button type="submit" :validate="addFormValidate" :loading="addLoading" @click="onAddSubmit" />
         </div>
       </template>
-    </el-dialog>
+    </my-window>
 
     <!--编辑窗口-->
-    <el-dialog
+    <my-window
       v-if="checkPermission(['api:admin:api:update'])"
       title="编辑"
       :visible.sync="editFormVisible"
-      :close-on-click-modal="false"
       @close="onCloseEditForm"
     >
       <el-form ref="editForm" :model="editForm" :rules="editFormRules" label-width="80px">
-        <el-form-item prop="parentIds" label="所属模块">
+        <el-form-item prop="parentIds" label="上级接口">
           <el-cascader
             :key="editFormKey"
             v-model="editForm.parentIds"
@@ -186,29 +182,19 @@
           <my-confirm-button type="submit" :validate="editFormValidate" :loading="editLoading" @click="onEditSubmit" />
         </div>
       </template>
-    </el-dialog>
+    </my-window>
   </section>
 </template>
 
 <script>
 import { formatTime, treeToList, listToTree, getTreeParents } from '@/utils'
-import {
-  removeApi,
-  editApi,
-  addApi,
-  getV2SwaggerJson,
-  syncApi,
-  getApiList,
-  batchRemoveApi,
-  getApi
-} from '@/api/admin/api'
+import { removeApi, editApi, addApi, getV2SwaggerJson, syncApi, getApiList, batchRemoveApi, getApi } from '@/api/admin/api'
+import MyWindow from '@/components/my-window'
 import MyConfirmButton from '@/components/my-confirm-button'
 
 export default {
   name: 'Api',
-  components: {
-    MyConfirmButton
-  },
+  components: { MyWindow, MyConfirmButton },
   data() {
     return {
       filters: {
@@ -222,7 +208,7 @@ export default {
       editFormVisible: false, // 编辑界面是否显示
       editLoading: false,
       editFormRules: {
-        parentIds: [{ required: true, message: '请选择所属模块', trigger: 'change' }],
+        parentIds: [{ required: true, message: '请选择上级接口', trigger: 'change' }],
         path: [{ required: true, message: '请输入接口地址', trigger: 'blur' }],
         label: [{ required: true, message: '请输入接口名', trigger: 'blur' }]
       },
@@ -241,7 +227,7 @@ export default {
       addFormVisible: false, // 新增界面是否显示
       addLoading: false,
       addFormRules: {
-        parentIds: [{ required: true, message: '请选择所属模块', trigger: 'change' }],
+        parentIds: [{ required: true, message: '请选择上级接口', trigger: 'change' }],
         path: [{ required: true, message: '请输入接口地址', trigger: 'blur' }],
         label: [{ required: true, message: '请输入接口名', trigger: 'blur' }]
       },
@@ -285,7 +271,7 @@ export default {
       this.modules = listToTree(_.cloneDeep(parentModules), {
         id: 0,
         parentId: 0,
-        label: '根节点'
+        label: '顶级'
       })
 
       list.forEach(l => {
@@ -338,7 +324,7 @@ export default {
       para.parentId = para.parentIds.pop()
       if (para.id === para.parentId) {
         this.$message({
-          message: '所属模块不能是自己！',
+          message: '上级接口不能是自己！',
           type: 'error'
         })
         this.editLoading = false

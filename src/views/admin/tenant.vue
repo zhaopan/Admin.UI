@@ -50,7 +50,6 @@
       @selection-change="selsChange"
     >
       <el-table-column type="selection" width="50" />
-      <el-table-column type="index" width="80" label="#" />
       <el-table-column prop="name" label="企业名称" width />
       <el-table-column prop="code" label="企业编码" width />
       <el-table-column prop="dataIsolationTypeName" label="数据隔离" width="120" />
@@ -113,252 +112,240 @@
     </template>
 
     <!--选择权限-->
-    <my-select-permission :role-id="roleId" :title="title" :visible.sync="selectPermissionVisible" @click="onSelectPermission" />
+    <my-select-permission :tenant="true" :tenant-id="tenantId" :title="title" :visible.sync="selectPermissionVisible" :set-permission-loading="setPermissionLoading" @click="onSelectPermission" />
 
     <!--新增窗口-->
-    <el-drawer
+    <my-window
       v-if="checkPermission(['api:admin:tenant:add'])"
       title="新增租户"
-      :modal="false"
-      :wrapper-closable="true"
-      :modal-append-to-body="false"
+      embed
+      drawer
       :visible.sync="addFormVisible"
-      direction="btt"
-      size="'auto'"
-      class="el-drawer__wrapper"
-      style="position:absolute;"
       @close="closeAddForm"
     >
-      <section style="padding:24px 48px 74px 24px;">
-        <el-form
-          ref="addForm"
-          :model="addForm"
-          :rules="addFormRules"
-          label-width="120px"
-          :inline="false"
-        >
-          <el-row>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="企业名称" prop="name">
-                <el-input v-model="addForm.name" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="企业编码" prop="code">
-                <el-input v-model="addForm.code" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="数据隔离类型" prop="dataIsolationType">
-                <el-select v-model="addForm.dataIsolationType" placeholder="数据隔离类型" style="width:100%;">
-                  <el-option
-                    v-for="item in dataIsolationTypeList"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="姓名" prop="realName">
-                <el-input v-model="addForm.realName" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="手机号码" prop="phone">
-                <el-input v-model="addForm.phone" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="邮箱地址" prop="email">
-                <el-input v-model="addForm.email" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="数据库" prop="dbType">
-                <el-select v-model="addForm.dbType" filterable placeholder="请选择数据库" style="width:100%;">
-                  <el-option
-                    v-for="item in dbTypeList"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="空闲时间（分）" prop="idleTime">
-                <el-input-number v-model="addForm.idleTime" controls-position="right" :min="1" style="width:100%;" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="状态" prop="enabled">
-                <el-select v-model="addForm.enabled" placeholder="请选择租户状态" style="width:100%;">
-                  <el-option
-                    v-for="item in statusList"
-                    :key="item.value"
-                    :label="item.name"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :xs="24" :sm="24" :md="18" :lg="18" :xl="18">
-              <el-form-item label="连接字符串" prop="connectionString">
-                <el-input v-model="addForm.connectionString" type="textarea" :autosize="{ minRows: 2, maxRows: 4}" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :xs="24" :sm="24" :md="18" :lg="18" :xl="18">
-              <el-form-item label="说明" prop="description">
-                <el-input v-model="addForm.description" type="textarea" :rows="2" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
-      </section>
-      <div class="drawer-footer">
+      <el-form
+        ref="addForm"
+        :model="addForm"
+        :rules="addFormRules"
+        label-width="120px"
+        :inline="false"
+      >
+        <el-row>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="企业名称" prop="name">
+              <el-input v-model="addForm.name" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="企业编码" prop="code">
+              <el-input v-model="addForm.code" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="数据隔离类型" prop="dataIsolationType">
+              <el-select v-model="addForm.dataIsolationType" placeholder="数据隔离类型" style="width:100%;">
+                <el-option
+                  v-for="item in dataIsolationTypeList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="姓名" prop="realName">
+              <el-input v-model="addForm.realName" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="手机号码" prop="phone">
+              <el-input v-model="addForm.phone" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="邮箱地址" prop="email">
+              <el-input v-model="addForm.email" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="数据库" prop="dbType">
+              <el-select v-model="addForm.dbType" filterable placeholder="请选择数据库" style="width:100%;">
+                <el-option
+                  v-for="item in dbTypeList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="空闲时间（分）" prop="idleTime">
+              <el-input-number v-model="addForm.idleTime" controls-position="right" :min="0" style="width:100%;" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="状态" prop="enabled">
+              <el-select v-model="addForm.enabled" placeholder="请选择租户状态" style="width:100%;">
+                <el-option
+                  v-for="item in statusList"
+                  :key="item.value"
+                  :label="item.name"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :xs="24" :sm="24" :md="18" :lg="18" :xl="18">
+            <el-form-item label="连接字符串" prop="connectionString">
+              <el-input v-model="addForm.connectionString" type="textarea" :autosize="{ minRows: 2, maxRows: 4}" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :xs="24" :sm="24" :md="18" :lg="18" :xl="18">
+            <el-form-item label="说明" prop="description">
+              <el-input v-model="addForm.description" type="textarea" :rows="2" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
         <el-button @click.native="addFormVisible = false">取消</el-button>
         <my-confirm-button type="submit" :validate="addFormValidate" :loading="addLoading" @click="onAddSubmit" />
-      </div>
-    </el-drawer>
+      </template>
+    </my-window>
 
     <!--编辑窗口-->
-    <el-drawer
+    <my-window
       v-if="checkPermission(['api:admin:tenant:update'])"
       title="编辑租户"
-      :modal="false"
-      :wrapper-closable="true"
-      :modal-append-to-body="false"
+      embed
+      drawer
       :visible.sync="editFormVisible"
-      direction="btt"
-      size="'auto'"
-      style="position:absolute;"
       @close="closeEditForm"
     >
-      <section style="padding:24px 48px 74px 24px;">
-        <el-form
-          ref="editForm"
-          :model="editForm"
-          :rules="editFormRules"
-          label-width="120px"
-          :inline="false"
-        >
-          <el-row>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="企业名称" prop="name">
-                <el-input v-model="editForm.name" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="企业编码" prop="code">
-                <el-input v-model="editForm.code" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="数据隔离类型" prop="dataIsolationType">
-                <el-select v-model="editForm.dataIsolationType" placeholder="数据隔离类型" style="width:100%;">
-                  <el-option
-                    v-for="item in dataIsolationTypeList"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="姓名" prop="realName">
-                <el-input v-model="editForm.realName" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="手机号码" prop="phone">
-                <el-input v-model="editForm.phone" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="邮箱地址" prop="email">
-                <el-input v-model="editForm.email" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="数据库" prop="dbType">
-                <el-select v-model="editForm.dbType" filterable placeholder="请选择数据库" style="width:100%;">
-                  <el-option
-                    v-for="item in dbTypeList"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="空闲时间（分）" prop="idleTime">
-                <el-input-number v-model="editForm.idleTime" controls-position="right" :min="1" style="width:100%;" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
-              <el-form-item label="状态" prop="enabled">
-                <el-select v-model="editForm.enabled" placeholder="请选择租户状态" style="width:100%;">
-                  <el-option
-                    v-for="item in statusList"
-                    :key="item.value"
-                    :label="item.name"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :xs="24" :sm="24" :md="18" :lg="18" :xl="18">
-              <el-form-item label="连接字符串" prop="connectionString">
-                <el-input v-model="editForm.connectionString" type="textarea" :autosize="{ minRows: 2, maxRows: 4}" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :xs="24" :sm="24" :md="18" :lg="18" :xl="18">
-              <el-form-item label="说明" prop="description">
-                <el-input v-model="editForm.description" type="textarea" :rows="2" auto-complete="off" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
-      </section>
-      <div class="drawer-footer">
+      <el-form
+        ref="editForm"
+        :model="editForm"
+        :rules="editFormRules"
+        label-width="120px"
+        :inline="false"
+      >
+        <el-row>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="企业名称" prop="name">
+              <el-input v-model="editForm.name" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="企业编码" prop="code">
+              <el-input v-model="editForm.code" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="数据隔离类型" prop="dataIsolationType">
+              <el-select v-model="editForm.dataIsolationType" placeholder="数据隔离类型" style="width:100%;">
+                <el-option
+                  v-for="item in dataIsolationTypeList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="姓名" prop="realName">
+              <el-input v-model="editForm.realName" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="手机号码" prop="phone">
+              <el-input v-model="editForm.phone" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="邮箱地址" prop="email">
+              <el-input v-model="editForm.email" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="数据库" prop="dbType">
+              <el-select v-model="editForm.dbType" filterable placeholder="请选择数据库" style="width:100%;">
+                <el-option
+                  v-for="item in dbTypeList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="空闲时间（分）" prop="idleTime">
+              <el-input-number v-model="editForm.idleTime" controls-position="right" :min="0" style="width:100%;" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+            <el-form-item label="状态" prop="enabled">
+              <el-select v-model="editForm.enabled" placeholder="请选择租户状态" style="width:100%;">
+                <el-option
+                  v-for="item in statusList"
+                  :key="item.value"
+                  :label="item.name"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :xs="24" :sm="24" :md="18" :lg="18" :xl="18">
+            <el-form-item label="连接字符串" prop="connectionString">
+              <el-input v-model="editForm.connectionString" type="textarea" :autosize="{ minRows: 2, maxRows: 4}" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :xs="24" :sm="24" :md="18" :lg="18" :xl="18">
+            <el-form-item label="说明" prop="description">
+              <el-input v-model="editForm.description" type="textarea" :rows="2" auto-complete="off" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
         <el-button @click.native="editFormVisible = false">取消</el-button>
         <my-confirm-button type="submit" :validate="editFormValidate" :loading="editLoading" @click="onEditSubmit" />
-      </div>
-    </el-drawer>
+      </template>
+    </my-window>
   </my-container>
 </template>
 
 <script>
 import { formatTime } from '@/utils'
 import { getTenantListPage, removeTenant, editTenant, addTenant, batchRemoveTenant, getTenant, deleteTenant } from '@/api/admin/tenant'
-import { addRolePermission } from '@/api/admin/permission'
+import { saveTenantPermissions } from '@/api/admin/permission'
 import MyContainer from '@/components/my-container'
 import MyConfirmButton from '@/components/my-confirm-button'
 import MySelectPermission from '@/components/my-select-window/permission'
+import MyWindow from '@/components/my-window'
 
 export default {
-  name: 'Tenants',
-  components: { MyContainer, MyConfirmButton, MySelectPermission },
+  name: 'Tenant',
+  components: { MyContainer, MyConfirmButton, MySelectPermission, MyWindow },
   data() {
     const validatePhone = (rule, value, callback) => {
       const reg = /^(0|86|17951)?(13[0-9]|15[0123456789]|17[678]|18[0-9]|14[57])[0-9]{8}$/
@@ -468,12 +455,13 @@ export default {
       deleteLoading: false,
 
       selectPermissionVisible: false,
-      currentRow: null
+      currentRow: null,
+      setPermissionLoading: false
     }
   },
   computed: {
-    roleId() {
-      return this.currentRow?.roleId
+    tenantId() {
+      return this.currentRow?.id
     },
     title() {
       return `设置${this.currentRow?.name}（${this.currentRow?.code}）权限`
@@ -660,10 +648,10 @@ export default {
     },
     // 选择权限
     async onSelectPermission(permissionIds) {
-      const para = { permissionIds, roleId: this.roleId }
-      this.loadingSave = true
-      const res = await addRolePermission(para)
-      this.loadingSave = false
+      const para = { permissionIds, tenantId: this.tenantId }
+      this.setPermissionLoading = true
+      const res = await saveTenantPermissions(para)
+      this.setPermissionLoading = false
 
       if (!res?.success) {
         return

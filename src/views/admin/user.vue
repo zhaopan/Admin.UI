@@ -41,7 +41,6 @@
       @selection-change="onSelsChange"
     >
       <el-table-column type="selection" width="50" />
-      <el-table-column type="index" width="80" label="#" />
       <el-table-column prop="userName" label="用户名" width />
       <el-table-column prop="nickName" label="昵称" width />
       <el-table-column prop="roleNames" label="角色" width>
@@ -91,145 +90,128 @@
     />
 
     <!--新增窗口-->
-    <el-drawer
+    <my-window
       v-if="checkPermission(['api:admin:user:add'])"
-      ref="addFormWindow"
       title="新增用户"
-      :modal="false"
-      :wrapper-closable="true"
-      :modal-append-to-body="false"
+      embed
+      drawer
       :visible.sync="addFormVisible"
-      destroy-on-close
-      direction="btt"
-      size="auto"
-      class="el-drawer__wrapper"
-      style="position:absolute;"
       @close="closeAddForm"
     >
-      <section style="padding:24px 48px 74px 24px;">
-        <el-form
-          ref="addForm"
-          :model="addForm"
-          :rules="addFormRules"
-          label-width="80px"
-          :inline="false"
-        >
-          <el-row>
-            <el-col :xs="24" :sm="24" :md="24" :lg="18" :xl="18">
-              <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
-                <el-form-item label="用户名" prop="userName">
-                  <el-input
-                    v-model="addForm.userName"
-                    autocomplete="off"
-                    :readonly="userNameReadonly"
-                    @focus="userNameReadonly = false"
-                    @blur="userNameReadonly = true"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
-                <el-form-item label="密码" prop="password">
-                  <el-input v-model="addForm.password" show-password autocomplete="off" />
-                </el-form-item>
-              </el-col>
-              <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
-                <el-form-item label="昵称" prop="nickName">
-                  <el-input v-model="addForm.nickName" autocomplete="off" />
-                </el-form-item>
-              </el-col>
-              <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
-                <el-form-item label="角色" prop="roleIds">
-                  <el-select v-model="addForm.roleIds" multiple placeholder="请选择角色" style="width:100%;">
-                    <el-option
-                      v-for="item in roles"
-                      :key="item.id"
-                      :label="item.name"
-                      :value="item.id"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
+      <el-form
+        ref="addForm"
+        :model="addForm"
+        :rules="addFormRules"
+        label-width="80px"
+        :inline="false"
+      >
+        <el-row>
+          <el-col :xs="24" :sm="24" :md="24" :lg="18" :xl="18">
+            <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
+              <el-form-item label="用户名" prop="userName">
+                <el-input
+                  v-model="addForm.userName"
+                  autocomplete="off"
+                  :readonly="userNameReadonly"
+                  @focus="userNameReadonly = false"
+                  @blur="userNameReadonly = true"
+                />
+              </el-form-item>
             </el-col>
-          </el-row>
-        </el-form>
-      </section>
-      <div class="drawer-footer">
-        <el-button @click.native="$refs.addFormWindow.closeDrawer()">取消</el-button>
+            <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
+              <el-form-item label="密码" prop="password">
+                <el-input v-model="addForm.password" show-password autocomplete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
+              <el-form-item label="昵称" prop="nickName">
+                <el-input v-model="addForm.nickName" autocomplete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
+              <el-form-item label="角色" prop="roleIds">
+                <el-select v-model="addForm.roleIds" multiple placeholder="请选择角色" style="width:100%;">
+                  <el-option
+                    v-for="item in select.roles"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <el-button @click.native="addFormVisible = false">取消</el-button>
         <my-confirm-button type="submit" :validate="addFormvalidate" :loading="addLoading" @click="onAddSubmit" />
-      </div>
-    </el-drawer>
+      </template>
+    </my-window>
 
     <!--编辑窗口-->
-    <el-drawer
+    <my-window
       v-if="checkPermission(['api:admin:user:update'])"
       title="编辑用户"
-      :modal="false"
-      :wrapper-closable="true"
-      :close-on-press-escape="true"
-      :modal-append-to-body="false"
+      embed
+      drawer
       :visible.sync="editFormVisible"
-      direction="btt"
-      size="'auto'"
-      class="el-drawer__wrapper"
-      style="position:absolute;"
       @close="closeEditForm"
     >
-      <section style="padding:24px 48px 74px 24px;">
-        <el-form
-          ref="editForm"
-          :model="editForm"
-          :rules="editFormRules"
-          label-width="80px"
-          :inline="false"
-        >
-          <el-row>
-            <el-col :xs="24" :sm="24" :md="24" :lg="18" :xl="18">
-              <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
-                <el-form-item label="用户名" prop="userName">
-                  <el-input v-model="editForm.userName" autocomplete="off" />
-                </el-form-item>
-              </el-col>
-              <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
-                <el-form-item label="昵称" prop="nickName">
-                  <el-input v-model="editForm.nickName" autocomplete="off" />
-                </el-form-item>
-              </el-col>
-              <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
-                <el-form-item label="角色" prop="roleIds">
-                  <el-select v-model="editForm.roleIds" multiple placeholder="请选择角色" style="width:100%;">
-                    <el-option
-                      v-for="item in roles"
-                      :key="item.id"
-                      :label="item.name"
-                      :value="item.id"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
+      <el-form
+        ref="editForm"
+        :model="editForm"
+        :rules="editFormRules"
+        label-width="80px"
+        :inline="false"
+      >
+        <el-row>
+          <el-col :xs="24" :sm="24" :md="24" :lg="18" :xl="18">
+            <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
+              <el-form-item label="用户名" prop="userName">
+                <el-input v-model="editForm.userName" autocomplete="off" />
+              </el-form-item>
             </el-col>
-          </el-row>
-        </el-form>
-      </section>
-      <div class="drawer-footer">
+            <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
+              <el-form-item label="昵称" prop="nickName">
+                <el-input v-model="editForm.nickName" autocomplete="off" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8" :lg="8" :xl="6">
+              <el-form-item label="角色" prop="roleIds">
+                <el-select v-model="editForm.roleIds" multiple placeholder="请选择角色" style="width:100%;">
+                  <el-option
+                    v-for="item in select.roles"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
         <el-button @click.native="editFormVisible = false">取消</el-button>
         <my-confirm-button type="submit" :validate="editFormvalidate" :loading="editLoading" @click="onEditSubmit" />
-      </div>
-    </el-drawer>
+      </template>
+    </my-window>
   </my-container>
 </template>
 
 <script>
 import { formatTime } from '@/utils'
-import { getRoleListPage } from '@/api/admin/role'
-import { getUserListPage, removeUser, batchRemoveUser, editUser, addUser, getUser } from '@/api/admin/user'
+import { getUserListPage, removeUser, batchRemoveUser, editUser, addUser, getUser, getSelect } from '@/api/admin/user'
 import MyContainer from '@/components/my-container'
 import MyConfirmButton from '@/components/my-confirm-button'
 import MySearch from '@/components/my-search'
 import MySearchWindow from '@/components/my-search-window'
+import MyWindow from '@/components/my-window'
 
 export default {
-  name: 'Users',
-  components: { MyContainer, MyConfirmButton, MySearch, MySearchWindow },
+  name: 'User',
+  components: { MyContainer, MyConfirmButton, MySearch, MySearchWindow, MyWindow },
   data() {
     return {
       // 高级查询字段
@@ -245,6 +227,7 @@ export default {
 
       users: [],
       roles: [],
+      select: { roles: [] },
       total: 0,
       sels: [], // 列表选中列
       listLoading: false,
@@ -278,8 +261,7 @@ export default {
         password: '',
         roleIds: []
       },
-      deleteLoading: false,
-      selectTenantVisible: false
+      deleteLoading: false
     }
   },
   async mounted() {
@@ -331,40 +313,20 @@ export default {
       })
       this.users = data
     },
-    async getRoleListPage() {
-      const res = await getRoleListPage()
-      if (res && res.success) {
-        this.roles = res.data.list
-      }
-    },
     // 显示编辑界面
     async onEdit(index, row) {
       this.pageLoading = true
-      if (this.roles.length === 0) {
-        await this.getRoleListPage()
-      }
       const res = await getUser({ id: row.id })
       this.pageLoading = false
       if (res && res.success) {
-        const data = res.data
-        this.editForm = data
+        const { form, select } = res.data
+        this.select = select
+        this.editForm = form
         this.editFormVisible = true
       }
     },
     closeEditForm() {
       this.$refs.editForm.resetFields()
-    },
-    // 显示新增界面
-    async onAdd() {
-      if (this.roles.length === 0) {
-        this.pageLoading = true
-        await this.getRoleListPage()
-        this.pageLoading = false
-      }
-      this.addFormVisible = true
-    },
-    closeAddForm() {
-      this.$refs.addForm.resetFields()
     },
     // 编辑验证
     editFormvalidate() {
@@ -394,6 +356,20 @@ export default {
       this.editFormVisible = false
       this.getUsers()
     },
+    // 显示新增界面
+    async onAdd() {
+      this.pageLoading = true
+      const res = await getSelect()
+      this.pageLoading = false
+      if (res && res.success) {
+        const { select } = res.data
+        this.select = select
+        this.addFormVisible = true
+      }
+    },
+    closeAddForm() {
+      this.$refs.addForm.resetFields()
+    },
     // 新增验证
     addFormvalidate() {
       let isValid = false
@@ -405,7 +381,6 @@ export default {
     // 新增
     async onAddSubmit() {
       this.addLoading = true
-      debugger
       const para = _.cloneDeep(this.addForm)
 
       const res = await addUser(para)

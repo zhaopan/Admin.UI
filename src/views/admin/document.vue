@@ -6,13 +6,13 @@
           <span style="float:left;font-size:14px;line-height: 28px;">{{ document.form.label }}</span>
           <el-button v-if="checkPermission(['api:admin:document:updatecontent'])" type="primary" :disabled="!hasDocument" :loading="document.loadingSave" @click="save(false)">保存文档</el-button>
         </el-header>
-        <el-main class="main" style="padding:0px 5px 5px 5px;">
+        <el-main class="main" style="padding:0px 5px 5px 5px;overflow:unset">
           <div style="height:calc(100% - 2px);">
             <my-markdown-editor ref="markdownEditor" v-model="document.form.content" :height="'100%'" />
           </div>
         </el-main>
       </el-container>
-      <el-aside width="300px" style="padding:0px;border-left: 1px solid #e6e6e6;">
+      <el-aside v-resizable="resizeOptions" :width="rightPanelWidth" style="padding:0px;border-left: 1px solid #e6e6e6;position: relative;overflow:unset;">
         <el-container style="height:100%;overflow:hidden;">
           <el-header class="header" height="auto" style="padding:5px 10px 6px 10px;border-bottom: 1px solid #e6e6e6;text-align:right;">
             <div v-show="isDocTab">
@@ -165,15 +165,14 @@
     </el-container>
 
     <!--分组-->
-    <el-dialog
+    <my-window
       v-if="checkPermission(['api:admin:document:addgroup','api:admin:document:updategroup'])"
       :title="(documentGroup.form.id > 0 ? '编辑':'新增')+'分组'"
       :visible.sync="documentGroup.visible"
-      :close-on-click-modal="false"
       @close="onCloseGroup"
     >
       <el-form ref="documentGroupForm" :model="documentGroup.form" label-width="100px" :rules="formRules">
-        <el-form-item prop="parentIds" label="父级" width>
+        <el-form-item prop="parentIds" label="上级分组" width>
           <el-cascader
             :key="documentGroup.key"
             v-model="documentGroup.form.parentIds"
@@ -200,18 +199,17 @@
           <my-confirm-button type="submit" :validate="validateGroup" :loading="documentGroup.loading" @click="onSubmitGroup" />
         </div>
       </template>
-    </el-dialog>
+    </my-window>
 
-    <!--菜单-->
-    <el-dialog
+    <!--文档-->
+    <my-window
       v-if="checkPermission(['api:admin:document:addmenu','api:admin:document:updatemenu'])"
-      :title="(documentMenu.form.id > 0 ? '编辑':'新增')+'菜单'"
+      :title="(documentMenu.form.id > 0 ? '编辑':'新增')+'文档'"
       :visible.sync="documentMenu.visible"
-      :close-on-click-modal="false"
       @close="onCloseMenu"
     >
       <el-form ref="menuForm" :model="documentMenu.form" label-width="100px" :rules="formRules">
-        <el-form-item prop="parentIds" label="父级" width>
+        <el-form-item prop="parentIds" label="上级分组" width>
           <el-cascader
             :key="documentMenu.key"
             v-model="documentMenu.form.parentIds"
@@ -238,7 +236,7 @@
           <my-confirm-button type="submit" :validate="validateMenu" :loading="documentMenu.loading" @click="onSubmitMenu" />
         </div>
       </template>
-    </el-dialog>
+    </my-window>
 
     <!--图片查看器-->
     <image-viewer
@@ -252,9 +250,13 @@
 </template>
 
 <script>
+import { listToTree, getTreeParents } from '@/utils'
+import ImageViewer from 'element-ui/packages/image/src/image-viewer'
 import MyMarkdownEditor from '@/components/my-markdown-editor'
 import MyConfirmButton from '@/components/my-confirm-button'
-import { listToTree, getTreeParents } from '@/utils'
+import resizable from '@/directive/resizable'
+import MyWindow from '@/components/my-window'
+
 import {
   getDocuments,
   getDocumentImages,
@@ -273,19 +275,21 @@ import {
 let prevOverflow = ''
 
 export default {
-  name: 'Doc',
-  components: { MyMarkdownEditor, MyConfirmButton },
+  name: 'Document',
+  components: { ImageViewer, MyMarkdownEditor, MyConfirmButton, MyWindow },
+  directives: { resizable },
   data() {
     const tabs = { doc: 'docTab', img: 'imgTab' }
     return {
+      rightPanelWidth: '300px',
       documentTree: [],
       expandRowKeys: [],
       pageLoading: false,
       listLoading: false,
 
       formRules: {
-        parentId: [{ required: true, message: '请选择父级', trigger: 'change' }],
-        parentIds: [{ required: true, message: '请选择父级', trigger: 'change' }],
+        parentId: [{ required: true, message: '请选择上级', trigger: 'change' }],
+        parentIds: [{ required: true, message: '请选择上级', trigger: 'change' }],
         label: [{ required: true, message: '请输入名称', trigger: ['blur'] }],
         name: [{ required: true, message: '请输入命名', trigger: ['blur'] }]
       },
@@ -363,6 +367,18 @@ export default {
     },
     imageUrls() {
       return this.document.images.map(a => a.src)
+    },
+    resizeOptions() {
+      const me = this
+      return {
+        handles: 'w',
+        onlySize: true,
+        minWidth: 201,
+        maxWidth: 400,
+        onStopResize({ width }) {
+          me.rightPanelWidth = width + 'px'
+        }
+      }
     }
   },
   watch: {
@@ -398,6 +414,9 @@ export default {
   },
   mounted() {
     this.getDocuments()
+  },
+  activated() {
+    window.dispatchEvent(new Event('resize'))
   },
   beforeDestroy() {
     this.clearTimer()

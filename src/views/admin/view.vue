@@ -61,9 +61,8 @@
       @select="onSelect"
     >
       <el-table-column type="selection" width="50" />
-      <el-table-column type="index" width="50" label="#" />
-      <el-table-column prop="label" label="视图名" width="180" />
-      <el-table-column prop="id" label="编号" width="80" />
+      <el-table-column prop="label" label="视图名称" width="180" />
+      <el-table-column prop="name" label="视图命名" width="180" />
       <el-table-column prop="path" label="视图地址" width />
       <el-table-column prop="description" label="视图描述" width />
       <el-table-column prop="enabled" label="状态" width="100">
@@ -82,15 +81,14 @@
     </el-table>
 
     <!--新增窗口-->
-    <el-dialog
+    <my-window
       v-if="checkPermission(['api:admin:view:add'])"
       title="新增"
       :visible.sync="addFormVisible"
-      :close-on-click-modal="false"
       @close="onCloseAddForm"
     >
       <el-form ref="addForm" :model="addForm" label-width="80px" :rules="addFormRules">
-        <el-form-item prop="parentIds" label="所属模块">
+        <el-form-item prop="parentIds" label="上级视图">
           <el-cascader
             :key="addFormKey"
             v-model="addForm.parentIds"
@@ -101,8 +99,11 @@
             style="width:100%;"
           />
         </el-form-item>
-        <el-form-item label="视图名" prop="label">
+        <el-form-item label="视图名称" prop="label">
           <el-input v-model="addForm.label" auto-complete="off" />
+        </el-form-item>
+        <el-form-item label="视图命名" prop="name">
+          <el-input v-model="addForm.name" auto-complete="off" />
         </el-form-item>
         <el-form-item label="视图地址" prop="path">
           <el-input v-model="addForm.path" auto-complete="off" />
@@ -115,23 +116,20 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <div class="dialog-footer">
-          <el-button @click.native="addFormVisible = false">取消</el-button>
-          <my-confirm-button type="submit" :validate="addFormValidate" :loading="addLoading" @click="onAddSubmit" />
-        </div>
+        <el-button @click.native="addFormVisible = false">取消</el-button>
+        <my-confirm-button type="submit" :validate="addFormValidate" :loading="addLoading" @click="onAddSubmit" />
       </template>
-    </el-dialog>
+    </my-window>
 
     <!--编辑窗口-->
-    <el-dialog
+    <my-window
       v-if="checkPermission(['api:admin:view:update'])"
       title="编辑"
       :visible.sync="editFormVisible"
-      :close-on-click-modal="false"
       @close="onCloseEditForm"
     >
       <el-form ref="editForm" :model="editForm" :rules="editFormRules" label-width="80px">
-        <el-form-item prop="parentIds" label="所属模块">
+        <el-form-item prop="parentIds" label="上级视图">
           <el-cascader
             :key="editFormKey"
             v-model="editForm.parentIds"
@@ -142,8 +140,11 @@
             style="width:100%;"
           />
         </el-form-item>
-        <el-form-item label="视图名" prop="label">
+        <el-form-item label="视图名称" prop="label">
           <el-input v-model="editForm.label" auto-complete="off" />
+        </el-form-item>
+        <el-form-item label="视图命名" prop="name">
+          <el-input v-model="editForm.name" auto-complete="off" />
         </el-form-item>
         <el-form-item label="视图地址" prop="path">
           <el-input v-model="editForm.path" auto-complete="off" />
@@ -156,12 +157,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <div class="dialog-footer">
-          <el-button @click.native="editFormVisible = false">取消</el-button>
-          <my-confirm-button type="submit" :validate="editFormValidate" :loading="editLoading" @click="onEditSubmit" />
-        </div>
+        <el-button @click.native="editFormVisible = false">取消</el-button>
+        <my-confirm-button type="submit" :validate="editFormValidate" :loading="editLoading" @click="onEditSubmit" />
       </template>
-    </el-dialog>
+    </my-window>
   </section>
 </template>
 
@@ -176,11 +175,13 @@ import {
   batchRemoveView,
   getView
 } from '@/api/admin/view'
+import MyWindow from '@/components/my-window'
 import MyConfirmButton from '@/components/my-confirm-button'
 
 export default {
-  name: 'V',
+  name: 'AdminView',
   components: {
+    MyWindow,
     MyConfirmButton
   },
   data() {
@@ -197,16 +198,16 @@ export default {
       editFormVisible: false, // 编辑界面是否显示
       editLoading: false,
       editFormRules: {
-        parentIds: [{ required: true, message: '请选择所属模块', trigger: 'change' }],
-        path: [{ required: true, message: '请输入视图地址', trigger: 'blur' }],
+        parentIds: [{ required: true, message: '请选择上级视图', trigger: 'change' }],
         label: [{ required: true, message: '请输入视图名', trigger: 'blur' }]
       },
       // 编辑界面数据
       editForm: {
         id: 0,
         parentIds: [],
-        path: '',
         label: '',
+        name: '',
+        path: '',
         enabled: false,
         description: ''
       },
@@ -215,15 +216,15 @@ export default {
       addFormVisible: false, // 新增界面是否显示
       addLoading: false,
       addFormRules: {
-        parentIds: [{ required: true, message: '请选择所属模块', trigger: 'change' }],
-        path: [{ required: true, message: '请输入视图地址', trigger: 'blur' }],
+        parentIds: [{ required: true, message: '请选择上级视图', trigger: 'change' }],
         label: [{ required: true, message: '请输入视图名', trigger: 'blur' }]
       },
       // 新增界面数据
       addForm: {
         parentIds: [],
-        path: '',
         label: '',
+        name: '',
+        path: '',
         enabled: true,
         description: ''
       },
@@ -261,7 +262,7 @@ export default {
       this.modules = listToTree(_.cloneDeep(list), {
         id: 0,
         parentId: 0,
-        label: '根节点'
+        label: '顶级'
       })
 
       list.forEach(l => {
@@ -315,7 +316,7 @@ export default {
       para.parentId = para.parentIds.pop()
       if (para.id === para.parentId) {
         this.$message({
-          message: '所属模块不能是自己！',
+          message: '上级视图不能是自己！',
           type: 'error'
         })
         this.editLoading = false
@@ -405,16 +406,28 @@ export default {
     },
     // 同步view
     async onSync() {
-      const unFinish = true
-      if (unFinish) {
-        this.$message({
-          message: '开发中',
-          type: 'info'
-        })
-        return
-      }
+      const viewFiles = require.context('@/views', true, /\.vue$/)
+      const views = viewFiles.keys().reduce((views, modulePath) => {
+        const path = modulePath.replace(/^\.\/(.*)\.\w+$/, '$1')
+        const view = viewFiles(modulePath)
+        const name = view.default.name
+        const syncInfo = view.default._sync
+        if (name === 'DictionaryType') {
+          console.log(view)
+        }
+        const excludeNames = ['Login', 'LoginCallback', 'RefreshToken', 'Error404']
+        if (!excludeNames.includes(name) && syncInfo?.disabled !== true) {
+          views[views.length] = {
+            path: path,
+            name: name,
+            label: syncInfo?.title,
+            description: syncInfo?.desc,
+            cache: syncInfo?.cache !== false
+          }
+        }
+        return views
+      }, [])
 
-      const views = []
       this.syncLoading = true
       const syncRes = await syncView({ views })
       this.syncLoading = false

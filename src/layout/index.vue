@@ -1,8 +1,8 @@
 <template>
   <el-container class="container" style="height: 100%;">
-    <el-aside class="aside" :class="collapsedClass" width>
+    <el-aside ref="navBar" v-resizable="resizeOptions" class="aside" :width="navBarWidth">
       <div class="logo collapsedLogo" :class="isCollapse ? 'logo-collapse' : ''">
-        <router-link to="/" tag="div" class="logo-text" style="font-size: 22px;">
+        <router-link to="/">
           {{ isCollapse ? projectNameShort : projectName }}
         </router-link>
       </div>
@@ -190,6 +190,8 @@ import { listToTree, getTreeParents } from '@/utils'
 import Sortable from 'sortablejs'
 import { isExternalLink } from '@/utils/validate'
 import { toLogout } from '@/router'
+import resizable from '@/directive/resizable'
+// import { setStyle } from 'element-ui/lib/utils/dom'
 
 if (!Element.prototype.closest) {
   if (!Element.prototype.matches) {
@@ -212,6 +214,9 @@ export default {
   components: {
     MyMenuItem
   },
+  directives: {
+    resizable
+  },
   data() {
     return {
       openeds: [],
@@ -219,7 +224,6 @@ export default {
       projectName: 'Admin',
       projectNameShort: 'AD',
       avatarDefault: require('@/assets/images/avatar.png'),
-      collapsedClass: 'menu-expanded',
       isCollapse: false,
       isPc: false,
       tabsList: [],
@@ -230,7 +234,9 @@ export default {
         selectedTab: {}
       },
       tabPosition: 'top', // top | bottom
-      tabType: 'border-card' // '' | border-card | card
+      tabType: 'border-card', // '' | border-card | card
+      navBarWidth: '201px',
+      expandNavBarWidth: ''
     }
   },
   computed: {
@@ -295,6 +301,15 @@ export default {
     },
     canCloseAll() {
       return this.tabsList.length > 1
+    },
+    resizeOptions() {
+      return {
+        handles: 'e',
+        onlySize: true,
+        minWidth: 201,
+        maxWidth: 500,
+        disabled: this.isCollapse
+      }
     }
   },
   watch: {
@@ -314,9 +329,8 @@ export default {
       this.$store.commit('app/saveTabsData', JSON.stringify(this.tabsList))
     }
   },
-  async created() {
+  created() {
     this.isPc = window.innerWidth >= 768
-    this.collapsedClass = 'menu-expanded'
 
     // 还原会话tabs
     let sessionStorageTabs = sessionStorage.getItem('tabs')
@@ -356,7 +370,7 @@ export default {
         return
       }
 
-      const exists = this.tabsList.some(item => item.path === route.fullPath)
+      const exists = this.tabsList.some(item => item.fullPath === route.fullPath)
       if (exists) {
         return
       }
@@ -404,13 +418,20 @@ export default {
     onSelectMenu: function() {
       if (!this.isPc && !this.isCollapse) {
         this.isCollapse = true
-        // this.collapsedClass = 'menu-collapsed'
       }
     },
     // 折叠导航栏
     onCollapse: function() {
+      if (this.isCollapse) {
+        // 还原折叠之前的导航栏尺寸
+        this.navBarWidth = this.expandNavBarWidth
+      } else {
+        // 记录折叠之前的导航栏尺寸
+        this.expandNavBarWidth = this.$refs.navBar.$el.getBoundingClientRect().width + 'px'
+        this.navBarWidth = ''
+      }
+
       this.isCollapse = !this.isCollapse
-      // this.collapsedClass = this.isCollapse ? 'menu-collapsed':'menu-expanded';
     },
     // tab打开右键菜单
     onOpenMenu(e) {

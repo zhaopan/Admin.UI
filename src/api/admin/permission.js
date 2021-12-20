@@ -9,14 +9,23 @@ export const getPermissionList = (params, config = {}) => {
 export const removePermission = (params, config = {}) => {
   return request.delete(apiPrefix + 'softdelete', { params: params, ...config })
 }
+export const deletePermission = (params, config = {}) => {
+  return request.delete(apiPrefix + 'delete', { params: params, ...config })
+}
 export const getPermissions = (params, config = {}) => {
   return request.get(apiPrefix + 'getpermissionlist', { params: params, ...config })
 }
 export const getPermissionIds = (params, config = {}) => {
   return request.get(apiPrefix + 'GetRolePermissionList', { params: params, ...config })
 }
+export const GetTenantPermissionIds = (params, config = {}) => {
+  return request.get(apiPrefix + 'GetTenantPermissionList', { params: params, ...config })
+}
 export const addRolePermission = (params, config = {}) => {
   return request.post(apiPrefix + 'Assign', params, config)
+}
+export const saveTenantPermissions = (params, config = {}) => {
+  return request.post(apiPrefix + 'SaveTenantPermissions', params, config)
 }
 
 export const addGroup = (params, config = {}) => {
