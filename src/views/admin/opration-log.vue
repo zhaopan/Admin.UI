@@ -27,6 +27,9 @@
       height="'100%'"
       style="width: 100%;height:100%;"
     >
+      <template #empty>
+        <el-empty :image-size="100" />
+      </template>
       <el-table-column prop="createdUserName" label="操作账号" width="100">
         <template #default="{row}">
           {{ row.createdUserName }}<br>{{ row.nickName }}
@@ -68,11 +71,9 @@
 <script>
 import { formatTime } from '@/utils'
 import oprationLogApi from '@/api/admin/opration-log'
-import MyContainer from '@/components/my-container'
 
 export default {
   name: 'OprationLog',
-  components: { MyContainer },
   data() {
     return {
       filter: {

@@ -14,26 +14,27 @@
               >刷新</el-button>
             </div>
           </template>
-          <div class="role-box">
-            <div
-              v-for="o in roles"
-              :key="o.id"
-              :class="o.id == roleId ? 'active' : ''"
-              class="item role-item"
-              @click="roleSelect(o.id)"
-            >
-              <span>{{ o.name }}</span>
-              <span style="float:right;">{{ o.description }}</span>
-            </div>
-          </div>
-          <!--分页-->
-          <my-pagination
-            ref="pager"
-            :total="total"
-            :auto-layout="false"
-            layout="simpleJumper"
-            @get-page="getRoles"
-          />
+          <el-collapse v-model="activeGroupList">
+            <el-collapse-item v-for="(group, index) in roleTree" v-show="group.children?.length > 0" :key="group.id" :name="group.id">
+              <template slot="title">
+                {{ group.name }}
+              </template>
+              <!--列表-->
+              <el-table
+                ref="table"
+                :data="group.children"
+                highlight-current-row
+                :show-header="false"
+                current-row-key="id"
+                @current-change="(currentRow, oldCurrentRow) => onCurrentChange(currentRow, oldCurrentRow, index)"
+              >
+                <template #empty>
+                  <el-empty :image-size="50" />
+                </template>
+                <el-table-column prop="name" label="角色名" width />
+              </el-table>
+            </el-collapse-item>
+          </el-collapse>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="18" class="toolbar perms">
@@ -65,27 +66,17 @@
               >刷新</el-button>
             </div>
           </template>
-          <el-table
-            ref="multipleTable"
+          <my-el-tree
+            ref="tree"
             :data="permissionTree"
-            :default-expand-all="true"
-            :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
-            row-key="id"
-            highlight-current-row
-            style="width: 100%;"
-            @select-all="onSelectAll"
-            @select="onSelect"
-          >
-            <el-table-column type="selection" width="50" />
-            <el-table-column prop="label" label="导航菜单" width="200" />
-            <el-table-column label="菜单操作" width>
-              <template #default="{ row }">
-                <el-checkbox-group v-if="row.apis && row.apis.length > 0" v-model="chekedApis">
-                  <el-checkbox v-for="api in row.apis" :key="api.id" :label="api.id" @change="(value)=>onChange(value, row.id)">{{ api.label }}</el-checkbox>
-                </el-checkbox-group>
-              </template>
-            </el-table-column>
-          </el-table>
+            show-checkbox
+            default-expand-all
+            node-key="id"
+            highlight-current
+            :expand-on-click-node="false"
+            check-on-click-node
+            :indent="16"
+          />
         </el-card>
       </el-col>
     </el-row>
@@ -93,19 +84,19 @@
 </template>
 
 <script>
-import { treeToList, listToTree, getTreeParentsWithSelf } from '@/utils'
+import { listToTree } from '@/utils/tree'
 import roleApi from '@/api/admin/role'
 import permissionApi from '@/api/admin/permission'
 import MyConfirmButton from '@/components/my-confirm-button'
+import MyElTree from '@/components/element-ui/my-el-tree'
 
 export default {
   name: 'RolePermission',
-  components: {
-    MyConfirmButton
-  },
+  components: { MyConfirmButton, MyElTree },
   data() {
     return {
-      roles: [],
+      roleTree: [],
+      activeGroupList: [],
       total: 0,
       roleId: 0,
       permissionTree: [],
@@ -113,17 +104,8 @@ export default {
       loadingRoles: false,
       loadingPermissions: false,
       loadingSave: false,
-      checkedPermissions: [],
-      chekedApis: []
+      tableIndex: -1
     }
-  },
-  computed: {
-    // disabledSave() {
-    //   return !(
-    //     this.roleId > 0 &&
-    //     (this.checkedPermissions.length > 0 || this.chekedApis.length > 0)
-    //   )
-    // }
   },
   mounted() {
     this.getRoles()
@@ -136,24 +118,33 @@ export default {
     },
     // 获取角色列表
     async getRoles() {
-      var pager = this.$refs.pager.getPager()
-      const params = {
-        ...pager
-      }
       this.loadingRoles = true
-      const res = await roleApi.getPage(params)
+      const res = await roleApi.getList(this.filter)
       this.loadingRoles = false
 
-      this.total = res.data.total
-      this.roles = res.data?.list
+      if (!res?.success) {
+        return
+      }
+
+      const data = res.data
+      this.groupList = data.filter(a => a.parentId === 0)
+      this.roleTree = listToTree(_.cloneDeep(data))
+      this.roleTree.forEach(a => {
+        if (a.children?.length > 0) {
+          this.activeGroupList.push(a.id)
+        }
+      })
+      this.$nextTick(() => {
+        if (this.roleTree?.length > 0 && this.roleTree[0].children) {
+          this.$refs.table[0].setCurrentRow(this.roleTree[0].children[0])
+        }
+      })
     },
     // 获取权限树
     async getPermissions() {
       this.loadingPermissions = true
-      this.onSelectAll([])
 
-      const para = {}
-      const res = await permissionApi.getPermissionList(para)
+      const res = await permissionApi.getPermissionList()
       this.loadingPermissions = false
       const tree = listToTree(_.cloneDeep(res.data))
       this.permissionTree = tree
@@ -166,27 +157,9 @@ export default {
       }
 
       this.loadingPermissions = true
-      const para = { roleId: this.roleId }
-      const res = await permissionApi.getRolePermissionList(para)
-
+      const res = await permissionApi.getRolePermissionList({ roleId: this.roleId })
       this.loadingPermissions = false
-      const permissionIds = res.data
-      const rows = treeToList(this.permissionTree)
-      rows.forEach(row => {
-        const checked = permissionIds.includes(row.id)
-        this.$refs.multipleTable.toggleRowSelection(row, checked)
-      })
-      this.checkedPermissions = this.$refs.multipleTable.selection.map(s => {
-        return s.id
-      })
-
-      const apiIds = []
-      permissionIds.forEach(permissionId => {
-        if (!this.checkedPermissions.includes(permissionId)) {
-          apiIds.push(permissionId)
-        }
-      })
-      this.chekedApis = apiIds
+      this.$refs.tree.setCheckedKeys(res.data)
     },
     // 验证保存
     saveValidate() {
@@ -199,26 +172,15 @@ export default {
         isValid = false
         return isValid
       }
-      // if (!(this.checkedPermissions.length > 0 || this.chekedApis.length > 0)) {
-      //   this.$message({
-      //     message: '请选择权限！',
-      //     type: 'warning'
-      //   })
-      //   isValid = false
-      //   return isValid
-      // }
       return isValid
     },
     // 保存权限
     async save() {
-      const permissionIds = [...this.checkedPermissions]
-      if (this.chekedApis.length > 0) {
-        permissionIds.push(...this.chekedApis)
-      }
-      const para = { permissionIds, roleId: this.roleId }
+      const permissionIds = this.$refs.tree.getCheckedKeys(true)
+      const input = { permissionIds, roleId: this.roleId }
 
       this.loadingSave = true
-      const res = await permissionApi.assign(para)
+      const res = await permissionApi.assign(input)
       this.loadingSave = false
 
       if (!res?.success) {
@@ -230,84 +192,22 @@ export default {
         type: 'success'
       })
     },
-    roleSelect(id) {
-      this.roleId = id
-      this.onSelectAll([])
+    onCurrentChange(currentRow, oldCurrentRow, tableIndex) {
+      if (this.tableIndex > -1 && this.tableIndex !== tableIndex) {
+        this.$refs.table[this.tableIndex].setCurrentRow({ id: 0 })
+      }
+
+      this.tableIndex = tableIndex
+      this.currentRow = currentRow
+
+      this.roleId = currentRow.id
       this.getRolePermission()
-    },
-    selectApis(checked, row) {
-      if (row.apis) {
-        row.apis.forEach(a => {
-          const index = this.chekedApis.indexOf(a.id)
-          if (checked) {
-            if (index === -1) {
-              this.chekedApis.push(a.id)
-            }
-          } else {
-            if (index > -1) {
-              this.chekedApis.splice(index, 1)
-            }
-          }
-        })
-      }
-    },
-    onSelectAll(selection) {
-      const selections = treeToList(selection)
-      const rows = treeToList(this.permissionTree)
-      const checked = selections.length === rows.length
-      rows.forEach(row => {
-        this.$refs.multipleTable.toggleRowSelection(row, checked)
-        this.selectApis(checked, row)
-      })
-
-      this.checkedPermissions = this.$refs.multipleTable.selection.map(s => {
-        return s.id
-      })
-    },
-    onSelect(selection, row) {
-      const checked = selection.some(s => s.id === row.id)
-      if (row.children && row.children.length > 0) {
-        const rows = treeToList(row.children)
-        rows.forEach(r => {
-          this.$refs.multipleTable.toggleRowSelection(r, checked)
-          this.selectApis(checked, r)
-        })
-      } else {
-        this.selectApis(checked, row)
-      }
-
-      const parents = getTreeParentsWithSelf(this.permissionTree, row.id)
-      parents.forEach(parent => {
-        const checked = this.checkedPermissions.includes(parent.id)
-        if (!checked) {
-          this.$refs.multipleTable.toggleRowSelection(parent, true)
-        }
-      })
-
-      this.checkedPermissions = this.$refs.multipleTable.selection.map(s => {
-        return s.id
-      })
-    },
-    onChange(value, id) {
-      if (value) {
-        const parents = getTreeParentsWithSelf(this.permissionTree, id)
-        parents.forEach(parent => {
-          const checked = this.checkedPermissions.includes(parent.id)
-          if (!checked) {
-            this.$refs.multipleTable.toggleRowSelection(parent, true)
-          }
-        })
-
-        this.checkedPermissions = this.$refs.multipleTable.selection.map(s => {
-          return s.id
-        })
-      }
     }
   }
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .role-item {
   font-size: 14px;
   cursor: pointer;
@@ -331,12 +231,25 @@ export default {
   clear: both;
 }
 
-.save ::v-deep [_button] {
+.save :deep([_button]) {
   padding: 3px 0px;
 }
 
-.role-box{
-  margin-bottom:10px;
-  border-bottom:1px solid #E4E7ED;
+:deep() {
+  .el-collapse{
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    .el-collapse-item__wrap{
+      border-bottom-width: 0px;
+    }
+    .el-collapse-item__content{
+      padding-bottom: 5px;
+    }
+    .el-collapse-item__header{
+      height: 38px;
+      line-height: 38px;
+    }
+  }
 }
+
 </style>

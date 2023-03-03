@@ -32,7 +32,7 @@
     this.total = res.data.total
 */
 import { addResizeListener, removeResizeListener } from 'element-ui/lib/utils/resize-event'
-import MyElPagination from '@/components/element-ui/pagination'
+import MyElPagination from '@/components/element-ui/my-el-pagination'
 
 const layouts = {
   full: 'total, slot, sizes, prev, jumper, next',
@@ -51,12 +51,12 @@ export default {
     sizes: {
       type: Array,
       default() {
-        return [10, 20, 50, 100]
+        return [20, 50, 100]
       }
     },
     pageSize: {
       type: Number,
-      default: 10
+      default: 20
     },
     total: {
       type: Number,
@@ -128,7 +128,7 @@ export default {
       if (rect.width >= 800) {
         this.currentLayout = layouts[this.layout] || this.layout
       } else {
-        this.currentLayout = layouts.simple
+        this.currentLayout = layouts.simpleJumper
       }
     },
     setPage(val) {

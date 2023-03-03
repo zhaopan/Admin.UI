@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import { Message } from 'element-ui'
+import NProgress from 'nprogress'
+import 'nprogress/nprogress.css'
 import defaultSettings from '@/settings'
 import { getToken } from '@/utils/auth'
 import Layout from '@/layout'
@@ -175,6 +177,7 @@ function setCachedViews() {
 let first = true
 // 路由全局前置守卫
 router.beforeEach(async(to, from, next) => {
+  NProgress.start()
   document.title = getPageTitle(to.meta.title)
   const token = getToken()
 
@@ -183,6 +186,7 @@ router.beforeEach(async(to, from, next) => {
   if (token) {
     if (to.path === '/login') {
       toLogin(to, next)
+      NProgress.done()
     } else {
       const hasPermission = store.getters.menus && store.getters.menus.length > 0
       if (hasPermission) {
@@ -193,13 +197,12 @@ router.beforeEach(async(to, from, next) => {
           first = false
           const res = await store.dispatch('user/getLoginInfo')
           if (res && res.success) {
-            // if (!(res.data?.menus?.length > 0)) {
-            //   this.$confirm('无权限，请重新登录！', '提示').then(() => {
-            //     toLogin(to, next)
-            //   }).catch(() => {})
-            //   return
-            // }
-            next({ ...to, replace: true })
+            if (!(res.data?.menus?.length > 0)) {
+              Message.error('该账号未分配权限，请联系管理员！')
+              toLogin(to, next)
+            }else{
+              next({ ...to, replace: true })
+            }
           } else {
             toLogin(to, next)
           }
@@ -208,7 +211,12 @@ router.beforeEach(async(to, from, next) => {
     }
   } else {
     toLogin(to, next)
+    NProgress.done()
   }
+})
+
+router.afterEach(() => {
+  NProgress.done()
 })
 
 export default router

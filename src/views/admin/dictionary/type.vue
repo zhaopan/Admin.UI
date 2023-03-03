@@ -51,6 +51,9 @@
       @selection-change="onSelectionChange"
       @current-change="onCurrentChange"
     >
+      <template #empty>
+        <el-empty :image-size="100" />
+      </template>
       <el-table-column type="selection" width="50" />
       <el-table-column prop="name" label="名称" width />
       <el-table-column prop="code" label="编码" width />
@@ -185,11 +188,10 @@
 </template>
 
 <script>
-import { formatTime } from '@/utils'
 import dictionaryTypeApi from '@/api/admin/dictionary-type'
-import MyContainer from '@/components/my-container'
 import MyConfirmButton from '@/components/my-confirm-button'
 import MyWindow from '@/components/my-window'
+import { mapMutations } from 'vuex'
 
 /**
  * 数据字典类型
@@ -199,7 +201,7 @@ export default {
   _sync: {
     disabled: true
   },
-  components: { MyContainer, MyConfirmButton, MyWindow },
+  components: { MyConfirmButton, MyWindow },
   data() {
     return {
       filter: {
@@ -240,23 +242,16 @@ export default {
       },
       editFormRef: null,
 
-      deleteLoading: false,
-      selectPermissionVisible: false,
-      currentRow: null
+      deleteLoading: false
     }
-  },
-  computed: {
   },
   mounted() {
     this.getDataList()
   },
-  beforeUpdate() {
-    // console.log('update')
-  },
   methods: {
-    formatCreatedTime: function(row, column, time) {
-      return formatTime(time, 'YYYY-MM-DD HH:mm')
-    },
+    ...mapMutations('admin/dictionary', {
+      setDictionaryTypeId: 'setDictionaryTypeId'
+    }),
     onSearch() {
       this.$refs.pager.setPage(1)
       this.getDataList()
@@ -283,7 +278,9 @@ export default {
       })
       this.dataList = data
       if (this.total > 0) {
-        this.$refs.dt.setCurrentRow(data[0])
+        this.$nextTick(() => {
+          this.$refs.dt.setCurrentRow(data[0])
+        })
       }
     },
     // 显示新增界面
@@ -433,7 +430,7 @@ export default {
       this.sels = sels
     },
     onCurrentChange(currentRow, oldCurrentRow) {
-      this.$emit('current-change', currentRow, oldCurrentRow)
+      this.$emit('change', _.cloneDeep(currentRow))
     }
   }
 }

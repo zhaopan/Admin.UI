@@ -1,25 +1,27 @@
 <template>
   <el-input
     v-model="filter.value"
-    placeholder="请输入"
+    :placeholder="placeholder"
     class="my-search"
     clearable
     @keyup.enter.native="onSearch"
   >
-    <el-select
-      slot="prepend"
-      v-model="filter.field"
-      placeholder="请选择"
-      style="width:100px;"
-      @change="onChange"
-    >
-      <el-option
-        v-for="(o, index) in newFields"
-        :key="index"
-        :label="o.label"
-        :value="o.value"
-      />
-    </el-select>
+    <template v-if="newFields.length > 0" #prepend>
+      <el-select
+        v-model="filter.field"
+        placeholder="请选择"
+        style="width:100px;"
+        @change="onChange"
+      >
+        <el-option
+          v-for="(o, index) in newFields"
+          :key="index"
+          :label="o.label"
+          :value="o.value"
+        />
+      </el-select>
+    </template>
+
     <template #append>
       <el-button icon="el-icon-search" @click="onSearch" />
     </template>
@@ -42,6 +44,12 @@
 export default {
   name: 'MySearch',
   props: {
+    placeholder: {
+      type: String,
+      default() {
+        return '请输入'
+      }
+    },
     fields: {
       type: Array,
       default() {
@@ -78,7 +86,9 @@ export default {
   computed: {
   },
   watch: {
-
+    'filter.value'(val) {
+      this.$emit('input', val)
+    }
   },
   mounted() {
 
@@ -98,7 +108,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .my-search-window{
+:deep(.my-search-window){
   .el-dialog__body{
     padding:10px;
   }

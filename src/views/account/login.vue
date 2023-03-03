@@ -3,8 +3,8 @@
     <el-scrollbar class="page-component__scroll" style="height:100%;">
       <div style="height:10%;" />
       <el-card shadow="always" class="login-card" :body-style="{ padding: '0px' }">
-        <div class="title">Admin</div>
-        <div class="desc">admin 后台管理系统</div>
+        <!-- <div class="title">中台</div> -->
+        <div class="desc">中台.后台权限管理系统</div>
         <el-form ref="form" :model="form" :rules="formRules" size="medium">
           <el-form-item prop="userName">
             <el-input
@@ -93,7 +93,7 @@ export default {
   data() {
     return {
       form: {
-        userName: 'user',
+        userName: 'admin',
         password: '111111',
         verifyCode: '',
         verifyCodeKey: '',
@@ -186,25 +186,6 @@ export default {
       if (!res.success) {
         this.loginLoading = false
         this.loginText = '重新登录'
-        /*
-        switch (res.data) {
-          case 1:
-            this.getLoginVerifyCode()
-            this.$refs.verifyCode.focus()
-            break
-          case 2:
-            this.$refs.verifyCode.focus()
-            break
-          case 3:
-            this.getLoginVerifyCode()
-            this.$refs.userName.focus()
-            break
-          case 4:
-            this.getLoginVerifyCode()
-            this.$refs.password.focus()
-            break
-        }
-        */
         this.$refs.captcha.refresh()
         return
       }
@@ -223,10 +204,10 @@ export default {
   background: linear-gradient(to bottom right, #3a8ee6 0, #3a8ee6);
   opacity: 0.8;
 }
-.bg ::v-deep .el-scrollbar__view {
+.bg :deep(.el-scrollbar__view) {
   height: 100%;
 }
-.verifyCode ::v-deep .el-input__inner {
+.verifyCode :deep(.el-input__inner) {
   letter-spacing: 2px;
 }
 

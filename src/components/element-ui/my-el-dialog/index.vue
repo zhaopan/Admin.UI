@@ -18,7 +18,10 @@
         :class="['el-dialog', { 'is-fullscreen': fullscreen, 'el-dialog--center': center }, customClass]"
         :style="style"
       >
-        <my-container header-style="padding:0px;" footer-style="padding:0px;">
+        <my-container   
+          header-style="padding:0px;" 
+          footer-style="padding:0px;"
+        >
           <template #header>
             <div class="el-dialog__header" @dblclick="handleMaximize">
               <slot name="title">
@@ -58,11 +61,9 @@
 import Popup from 'element-ui/src/utils/popup'
 import Migrating from 'element-ui/src/mixins/migrating'
 import emitter from 'element-ui/src/mixins/emitter'
-import MyContainer from '@/components/my-container'
 
 export default {
   name: 'MyElDialog',
-  components: { MyContainer },
   mixins: [Popup, emitter, Migrating],
 
   props: {
@@ -160,13 +161,7 @@ export default {
       if (!this.fullscreen) {
         style = { ...this.cacheStyle }
       } else {
-        const dialogStyle = this.$refs.dialog.style
-        this.cacheStyle.left = dialogStyle.left
-        this.cacheStyle.top = dialogStyle.top
-        this.cacheStyle.marginLeft = dialogStyle.marginLeft
-        this.cacheStyle.marginTop = dialogStyle.marginTop
-        this.cacheStyle.width = dialogStyle.width
-        this.cacheStyle.height = dialogStyle.height
+        this.setCache()
       }
       return style
     }
@@ -185,6 +180,7 @@ export default {
           document.body.appendChild(this.$el)
         }
       } else {
+        this.setCache()
         this.$el.removeEventListener('scroll', this.updatePopper)
         if (!this.closed) this.$emit('close')
         if (this.destroyOnClose) {
@@ -214,6 +210,15 @@ export default {
   },
 
   methods: {
+    setCache(){
+        const dialogStyle = this.$refs.dialog.style
+        this.cacheStyle.left = dialogStyle.left
+        this.cacheStyle.top = dialogStyle.top
+        this.cacheStyle.marginLeft = dialogStyle.marginLeft
+        this.cacheStyle.marginTop = dialogStyle.marginTop
+        this.cacheStyle.width = dialogStyle.width
+        this.cacheStyle.height = dialogStyle.height
+    },
     getMigratingConfig() {
       return {
         props: {

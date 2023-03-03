@@ -88,10 +88,12 @@
           </el-tabs>
         </div>
       </el-header>
-      <el-main class="main" style="height:100%;">
-        <keep-alive :include="cachedViews">
-          <router-view :key="key" />
-        </keep-alive>
+      <el-main class="main" style="height:100%;overflow-x: hidden;">
+        <transition name="breadcrumb" mode="out-in">
+          <keep-alive :include="cachedViews">
+            <router-view v-if="show" :key="key" />
+          </keep-alive>
+        </transition>
       </el-main>
       <ul
         v-if="tabPosition === 'top'"
@@ -106,7 +108,7 @@
         <el-divider
           v-if="canClose || canCloseOthers || canCloseRight || canCloseLeft || canCloseAll"
         />
-        <li v-if="canClose" @click="closecurrentTab">
+        <li v-if="canClose" @click="closeCurrentTab">
           <span>关闭</span>
         </li>
         <li v-if="canCloseOthers" @click="closeOthersTabs">
@@ -169,7 +171,7 @@
         <li v-if="canCloseOthers" @click="closeOthersTabs">
           <i class="el-icon-more" />关闭其它
         </li>
-        <li v-if="canClose" @click="closecurrentTab">
+        <li v-if="canClose" @click="closeCurrentTab">
           <span>关闭</span>
         </li>
         <el-divider
@@ -186,9 +188,9 @@
 <script>
 import { mapGetters } from 'vuex'
 import MyMenuItem from './components/my-menu-item'
-import { listToTree, getTreeParents } from '@/utils'
+import { listToTree, getParents } from '@/utils/tree'
 import Sortable from 'sortablejs'
-import { isExternalLink } from '@/utils/validate'
+import { externalLink } from '@/utils/test'
 import { toLogout } from '@/router'
 import resizable from '@/directive/resizable'
 // import { setStyle } from 'element-ui/lib/utils/dom'
@@ -221,8 +223,8 @@ export default {
     return {
       openeds: [],
       menuTree: [],
-      projectName: 'Admin',
-      projectNameShort: 'AD',
+      projectName: '中台管理后台',
+      projectNameShort: '中台',
       avatarDefault: require('@/assets/images/avatar.png'),
       isCollapse: false,
       isPc: false,
@@ -235,8 +237,9 @@ export default {
       },
       tabPosition: 'top', // top | bottom
       tabType: 'border-card', // '' | border-card | card
-      navBarWidth: '201px',
-      expandNavBarWidth: ''
+      navBarWidth: '221px',
+      expandNavBarWidth: '',
+      show: true
     }
   },
   computed: {
@@ -250,7 +253,7 @@ export default {
       const path = this.$route.meta.path
       const menu = this.menus.find(m => m.path === path)
       if (menu && menu.id > 0) {
-        const parents = getTreeParents(this.menuTree, menu.id)
+        const parents = getParents(_.cloneDeep(this.menuTree), menu)
         parentTitles = parents.map(p => p.label)
         parentTitles.push(menu.label)
       }
@@ -265,7 +268,7 @@ export default {
       const tab = tabs && tabs.find(t => t.fullPath === fullPath)
       const k = tab && tab._k ? tab._k : ''
 
-      return this.$route.fullPath + k
+      return fullPath + k
     },
     showTabs() {
       return this.tabsList.length > 0
@@ -344,7 +347,7 @@ export default {
       // 检查外链
       cloneMenus.forEach(m => {
         if (!m.newWindow) {
-          m.newWindow = isExternalLink(m.path)
+          m.newWindow = externalLink(m.path)
         }
       })
       this.menuTree = listToTree(cloneMenus)
@@ -508,9 +511,19 @@ export default {
         t => t.fullPath === this.rightMenu.selectedTab.fullPath
       )
       tab._k = tab._k ? ++tab._k : 1
+
       this.$store.commit('app/saveTabsData', JSON.stringify(this.tabsList))
+
+      this.show = false
+      this.$store.commit('tabsView/delete_cached_view', { name: tab.name })
+      setTimeout(() => {
+        this.show = true
+        this.$nextTick(() => {
+          this.$store.commit('tabsView/add_cached_view', { name: tab.name })
+        })
+      }, 0)
     },
-    closecurrentTab() {
+    closeCurrentTab() {
       this.rightMenu.selectedTab &&
       this.onRemoveTab(this.rightMenu.selectedTab.fullPath)
     },
@@ -563,7 +576,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.container ::v-deep .el-tabs__item:focus.is-active.is-focus:not(:active) {
+.container :deep(.el-tabs__item:focus.is-active.is-focus:not(:active)) {
   -webkit-box-shadow: none;
   box-shadow: none;
   border-radius: unset;
@@ -582,7 +595,7 @@ export default {
   line-height: 50px !important;
 }
 
-.navbar ::v-deep {
+.navbar :deep() {
   .el-breadcrumb__inner,.el-breadcrumb__separator{
     color: #f4f4f5;
   }

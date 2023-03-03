@@ -22,20 +22,6 @@ export const getPage = (params, config = {}) => {
 }
 
 /**
- * 查询登录用户信息
- */
-export const getLoginUser = (params, config = {}) => {
-  return request.get(apiPrefix + 'get-login-user', { params: params, ...config })
-}
-
-/**
- * 查询下拉数据
- */
-export const getSelect = (params, config = {}) => {
-  return request.get(apiPrefix + 'get-select', { params: params, ...config })
-}
-
-/**
  * 查询用户基本信息
  */
 export const getBasic = (params, config = {}) => {
@@ -78,10 +64,31 @@ export const changePassword = (params, config = {}) => {
 }
 
 /**
+ * 重置密码
+ */
+export const resetPassword = (params, config = {}) => {
+  return request.post(apiPrefix + 'reset-password', params, config)
+}
+
+/**
+ * 设置主管
+ */
+export const setManager = (params, config = {}) => {
+  return request.post(apiPrefix + 'set-manager', params, config)
+}
+
+/**
  * 彻底删除用户
  */
 export const deleteAsync = (params, config = {}) => {
   return request.delete(apiPrefix + 'delete', { params: params, ...config })
+}
+
+/**
+ * 批量彻底删除用户
+ */
+export const batchDelete = (params, config = {}) => {
+  return request.put(apiPrefix + 'batch-delete', params, config)
 }
 
 /**
@@ -108,15 +115,16 @@ export const avatarUpload = (params, config = {}) => {
 export default {
   get,
   getPage,
-  getLoginUser,
-  getSelect,
   getBasic,
   getPermissions,
   add,
   update,
   updateBasic,
   changePassword,
+  resetPassword,
+  setManager,
   deleteAsync,
+  batchDelete,
   softDelete,
   batchSoftDelete,
   avatarUpload

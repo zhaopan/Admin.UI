@@ -18,7 +18,7 @@
         <el-form-item>
           <el-button type="primary" icon="el-icon-search" @click="onSearch">查询</el-button>
         </el-form-item>
-        <el-form-item v-if="checkPermission(['api:admin:organization:add'])">
+        <el-form-item v-if="checkPermission(['api:admin:org:add'])">
           <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新增</el-button>
         </el-form-item>
       </el-form>
@@ -28,7 +28,7 @@
     <el-table
       ref="multipleTable"
       v-loading="listLoading"
-      :data="organizationTree"
+      :data="orgTree"
       row-key="id"
       :default-expand-all="true"
       highlight-current-row
@@ -38,7 +38,10 @@
       @select-all="onSelectAll"
       @select="onSelect"
     >
-      <!-- <el-table-column type="selection" width="50" /> -->
+      <template #empty>
+        <el-empty :image-size="100" />
+      </template>
+      <el-table-column type="selection" width="50" />
       <el-table-column prop="name" label="部门名称" width="180" />
       <el-table-column prop="code" label="部门编码" width="120" />
       <el-table-column prop="value" label="部门值" width />
@@ -51,11 +54,11 @@
           >{{ row.enabled ? '正常' : '禁用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column v-if="checkPermission(['api:admin:organization:update','api:admin:organization:softdelete'])" label="操作" fixed="right" width="180">
-        <template v-if="checkPermission(['api:admin:organization:add'])" #default="{ $index, row }">
+      <el-table-column v-if="checkPermission(['api:admin:org:update','api:admin:org:softdelete'])" label="操作" fixed="right" width="180">
+        <template v-if="checkPermission(['api:admin:org:add'])" #default="{ $index, row }">
           <el-button icon="el-icon-edit" @click="onEdit($index, row)">编辑</el-button>
           <my-confirm-button
-            v-if="checkPermission(['api:admin:organization:add'])"
+            v-if="checkPermission(['api:admin:org:add'])"
             :type="'delete'"
             :loading="row._loading"
             :icon="'el-icon-delete'"
@@ -67,7 +70,7 @@
 
     <!--新增窗口-->
     <my-window
-      v-if="checkPermission(['api:admin:organization:add'])"
+      v-if="checkPermission(['api:admin:org:add'])"
       title="新增"
       :visible.sync="addFormVisible"
       @close="closeAddForm"
@@ -77,8 +80,8 @@
           <el-cascader
             :key="addFormKey"
             v-model="addForm.parentIds"
-            :options="organizations"
-            :props="{ checkStrictly: true, label: 'name', value: 'id' }"
+            :options="orgs"
+            :props="{ checkStrictly: true, value: 'id', label: 'name' }"
             filterable
             clearable
             style="width:100%;"
@@ -117,7 +120,7 @@
 
     <!--编辑窗口-->
     <my-window
-      v-if="checkPermission(['api:admin:organization:update'])"
+      v-if="checkPermission(['api:admin:org:update'])"
       title="编辑"
       :visible.sync="editFormVisible"
       @close="closeEditForm"
@@ -128,8 +131,8 @@
             :key="editFormKey"
             v-model="editForm.parentIds"
             placeholder="请选择，支持搜索功能"
-            :options="organizations"
-            :props="{ checkStrictly: true, label: 'name', value: 'id' }"
+            :options="orgs"
+            :props="{ checkStrictly: true, value: 'id', label: 'name' }"
             filterable
             style="width:100%;"
           />
@@ -168,28 +171,28 @@
 </template>
 
 <script>
-import { formatTime, treeToList, listToTree, getTreeParents } from '@/utils'
-import orgApi from '@/api/admin/organization'
-import MyContainer from '@/components/my-container'
+import { formatTime } from '@/utils'
+import { listToTree, treeToList, treeToListWithChildren, getParents } from '@/utils/tree'
+import orgApi from '@/api/admin/org'
 import MyConfirmButton from '@/components/my-confirm-button'
 import MyWindow from '@/components/my-window'
 
 export default {
-  name: 'Organization',
+  name: 'Org',
   _sync: {
     disabled: false,
     title: '部门管理',
     desc: '',
     cache: true
   },
-  components: { MyContainer, MyConfirmButton, MyWindow },
+  components: { MyConfirmButton, MyWindow },
   data() {
     return {
       filter: {
         name: ''
       },
-      organizationTree: [],
-      organizations: [],
+      orgTree: [],
+      orgs: [],
       statusList: [
         { name: '激活', value: true },
         { name: '禁用', value: false }
@@ -201,7 +204,7 @@ export default {
       editLoading: false,
       editFormRules: {
         parentIds: [{ required: true, message: '请选择上级部门', trigger: 'change' }],
-        name: [{ required: true, message: '请输入部门名称', trigger: 'blur' }]
+        name: [{ required: true, message: '请输入部门名称', trigger: ['blur', 'change'] }]
       },
       // 编辑界面数据
       editForm: {
@@ -219,7 +222,7 @@ export default {
       addLoading: false,
       addFormRules: {
         parentIds: [{ required: true, message: '请选择上级部门', trigger: 'change' }],
-        name: [{ required: true, message: '请输入部门名称', trigger: 'blur' }]
+        name: [{ required: true, message: '请输入部门名称', trigger: ['blur', 'change'] }]
       },
       // 新增界面数据
       addForm: {
@@ -258,17 +261,18 @@ export default {
 
       const list = _.cloneDeep(res.data)
 
-      this.organizations = listToTree(_.cloneDeep(list), {
+      this.orgs = [{
         id: 0,
         parentId: 0,
-        name: '顶级'
-      })
+        name: '顶级',
+        children: listToTree(_.cloneDeep(list))
+      }]
 
       list.forEach(d => {
         d._loading = false
       })
       const tree = listToTree(list)
-      this.organizationTree = tree
+      this.orgTree = tree
     },
     // 删除
     async onDelete(index, row) {
@@ -293,7 +297,7 @@ export default {
       const res = await orgApi.get({ id: row.id })
       loading.close()
       if (res && res.success) {
-        const parents = getTreeParents(this.organizationTree, row.id)
+        const parents = getParents(treeToList(_.cloneDeep(this.orgTree)), row)
         const parentIds = parents.map(p => p.id)
         parentIds.unshift(0)
 
@@ -332,7 +336,7 @@ export default {
 
       if (para.id === para.parentId) {
         this.$message({
-          message: '上级部门不能是自己！',
+          message: '上级部门不能是本部门',
           type: 'error'
         })
         this.editLoading = false
@@ -381,8 +385,8 @@ export default {
       this.getList()
     },
     onSelectAll: function(selection) {
-      const selections = treeToList(selection)
-      const rows = treeToList(this.organizationTree)
+      const selections = treeToListWithChildren(selection)
+      const rows = treeToListWithChildren(this.orgTree)
       const checked = selections.length === rows.length
       rows.forEach(row => {
         this.$refs.multipleTable.toggleRowSelection(row, checked)
@@ -393,7 +397,7 @@ export default {
     onSelect: function(selection, row) {
       const checked = selection.some(s => s.id === row.id)
       if (row.children && row.children.length > 0) {
-        const rows = treeToList(row.children)
+        const rows = treeToListWithChildren(row.children)
         rows.forEach(row => {
           this.$refs.multipleTable.toggleRowSelection(row, checked)
         })

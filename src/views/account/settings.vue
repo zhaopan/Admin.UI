@@ -13,12 +13,15 @@
         >
           <el-row :gutter="50">
             <el-col :sm="12" :xs="24">
+              <el-form-item label="姓名" prop="name">
+                <el-input v-model="editForm.name" />
+              </el-form-item>
               <el-form-item label="我的昵称" prop="nickName">
                 <el-input v-model="editForm.nickName" />
               </el-form-item>
-              <el-form-item label="个人简介">
-                <el-input v-model="editForm.remark" type="textarea" rows="4" />
-              </el-form-item>
+              <!-- <el-form-item label="个人简介">
+                <el-input v-model="editForm.introduce" type="textarea" rows="4" />
+              </el-form-item> -->
             </el-col>
             <el-col :sm="12" :xs="24">
               <el-form-item label="头像">
@@ -82,12 +85,7 @@
           <el-row>
             <el-col :sm="12" :xs="24">
               <el-form-item label="旧密码" prop="oldPassword">
-                <el-input
-                  v-model="editPwdForm.oldPassword"
-                  type="text"
-                  show-password
-                  auto-complete="off"
-                />
+                <el-input v-model="editPwdForm.oldPassword" show-password auto-complete="off" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -162,14 +160,14 @@ export default {
       isPc: true,
       tabsPosition: 'left',
       editFormRules: {
-        nickName: [{ required: true, message: '请输入我的昵称', trigger: 'blur' }]
+        name: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
       },
       editForm: {
         id: 0,
+        name: '',
         nickName: '',
-        remark: '',
-        avatar: '',
-        version: 0
+        introduce: '',
+        avatar: ''
       },
 
       editPwdFormRules: {
@@ -182,8 +180,7 @@ export default {
         password: '',
         oldPassword: '',
         newPassword: '',
-        confirmPassword: '',
-        version: 0
+        confirmPassword: ''
       },
       loading: false,
       editLoading: false,
@@ -219,13 +216,12 @@ export default {
     const data = res.data
     this.editForm = { ...data }
     this.editPwdForm.id = data.id
-    this.editPwdForm.version = data.version
   },
   methods: {
     // 上传成功
     onAvatarSuccess(res) {
       this.avatarLoading = false
-      if (!res?.code) {
+      if (!res?.success) {
         if (res.msg) {
           this.$message({
             message: res.msg,
@@ -240,7 +236,7 @@ export default {
     onAvatarError(err, file) {
       this.avatarLoading = false
       const res = err.message ? JSON.parse(err.message) : {}
-      if (!res?.code) {
+      if (!res?.success) {
         if (res.msg) {
           this.$message({
             message: res.msg,
@@ -263,15 +259,21 @@ export default {
       this.editLoading = false
 
       if (!res?.success) {
+        if (!res.msg) {
+          this.$message({
+            message: this.$t('admin.updateNotOk'),
+            type: 'error'
+          })
+        }
         return
       }
-      ++this.editForm.version
-      ++this.editPwdForm.version
+
       this.$message({
         message: this.$t('admin.updateOk'),
         type: 'success'
       })
-      this.$store.commit('user/setName', para.nickName)
+
+      this.$store.commit('user/setName', para.nickName || para.name)
       this.$store.commit('user/setAvatar', para.avatar)
     },
     editPwdFormvalidate() {
@@ -288,10 +290,16 @@ export default {
       this.editPwdLoading = false
 
       if (!res?.success) {
+        if (!res.msg) {
+          this.$message({
+            message: this.$t('admin.updateNotOk'),
+            type: 'error'
+          })
+        }
+
         return
       }
-      ++this.editForm.version
-      ++this.editPwdForm.version
+
       this.$message({
         message: this.$t('admin.updateOk'),
         type: 'success'
@@ -311,10 +319,10 @@ export default {
   font-size: 20px;
   line-height: 28px;
 }
-.pc ::v-deep .el-tabs--left .el-tabs__header.is-left {
+.pc :deep(.el-tabs--left .el-tabs__header.is-left) {
   margin-right: -1px;
 }
-.pc ::v-deep .el-tabs__content::before {
+.pc :deep(.el-tabs__content::before) {
   content: "";
   position: absolute;
   bottom: 0;
@@ -325,12 +333,12 @@ export default {
   top: 0;
 }
 
-.avatar-uploader ::v-deep .el-loading-spinner .circular{
+.avatar-uploader :deep(.el-loading-spinner .circular){
   width:26px;
   height:26px;
 }
 
-.pc ::v-deep .el-tabs__content{
+.pc :deep(.el-tabs__content){
     overflow: auto;
     height: 100%;
 }

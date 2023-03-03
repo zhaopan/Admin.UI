@@ -62,6 +62,9 @@
       @select-all="onSelectAll"
       @select="onSelect"
     >
+      <template #empty>
+        <el-empty :image-size="100" />
+      </template>
       <el-table-column type="selection" width="50" />
       <el-table-column prop="label" label="接口名" width="180" />
       <el-table-column prop="path" label="接口地址" width />
@@ -187,9 +190,10 @@
 </template>
 
 <script>
-import { formatTime, treeToList, listToTree, getTreeParents } from '@/utils'
+import { formatTime } from '@/utils'
+import { listToTree, treeToListWithChildren, getParents } from '@/utils/tree'
 import apiApi from '@/api/admin/api'
-import { getV2SwaggerJson } from '@/api/admin/api.extend'
+import { getSwaggerResources, getSwaggerJson } from '@/api/admin/api.extend'
 import MyWindow from '@/components/my-window'
 import MyConfirmButton from '@/components/my-confirm-button'
 
@@ -269,11 +273,12 @@ export default {
 
       const list = _.cloneDeep(res.data)
       const parentModules = list.filter(l => l.parentId === 0)
-      this.modules = listToTree(_.cloneDeep(parentModules), {
+      this.modules = [{
         id: 0,
         parentId: 0,
-        label: '顶级'
-      })
+        label: '顶级',
+        children: listToTree(_.cloneDeep(parentModules))
+      }]
 
       list.forEach(l => {
         l._loading = false
@@ -288,7 +293,7 @@ export default {
       const res = await apiApi.get({ id: row.id })
       loading.close()
       if (res && res.success) {
-        const parents = getTreeParents(this.apiTree, row.id)
+        const parents = getParents(this.apiTree, row)
         const parentIds = parents.map(p => p.id)
         parentIds.unshift(0)
 
@@ -410,10 +415,8 @@ export default {
 
       this.onGetList()
     },
-    // 同步api
-    async onSync() {
-      this.syncLoading = true
-      const res = await getV2SwaggerJson()
+    async syncApi(url) {
+      const res = await getSwaggerJson(url)
 
       if (!res) {
         this.syncLoading = false
@@ -449,25 +452,44 @@ export default {
         }
       }
 
-      const syncRes = await apiApi.sync({ apis })
-      this.syncLoading = false
+      return await apiApi.sync({ apis })
+    },
+    // 同步api
+    async onSync() {
+      this.syncLoading = true
+      const resSwaggerResources = await getSwaggerResources()
 
-      if (!syncRes?.success) {
-        return
+      if (_.isArray(resSwaggerResources) && resSwaggerResources?.length > 0) {
+        for (let index = 0, len = resSwaggerResources.length, last = len - 1; index < len; index++) {
+          const swaggerResource = resSwaggerResources[index]
+          const resSyncApi = await this.syncApi(swaggerResource.url)
+          if (index === last) {
+            this.syncLoading = false
+            if (resSyncApi?.success) {
+              this.$message({
+                message: this.$t('api.sync'),
+                type: 'success'
+              })
+              this.onGetList()
+            } else {
+              this.$message({
+                message: '同步Api失败',
+                type: 'error'
+              })
+            }
+          }
+        }
+      } else {
+        this.syncLoading = false
       }
-      this.$message({
-        message: this.$t('api.sync'),
-        type: 'success'
-      })
-      this.onGetList()
     },
     // 生成前端api
     onGenerate() {
       // let bb = this.sels
     },
     onSelectAll: function(selection) {
-      const selections = treeToList(selection)
-      const rows = treeToList(this.apiTree)
+      const selections = treeToListWithChildren(selection)
+      const rows = treeToListWithChildren(this.apiTree)
       const checked = selections.length === rows.length
       rows.forEach(row => {
         this.$refs.multipleTable.toggleRowSelection(row, checked)
@@ -478,7 +500,7 @@ export default {
     onSelect: function(selection, row) {
       const checked = selection.some(s => s.id === row.id)
       if (row.children && row.children.length > 0) {
-        const rows = treeToList(row.children)
+        const rows = treeToListWithChildren(row.children)
         rows.forEach(row => {
           this.$refs.multipleTable.toggleRowSelection(row, checked)
         })
